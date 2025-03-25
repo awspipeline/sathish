@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vulnerability List - CSV Upload</title>
+  <style>
+    /* Style for each detail row */
+    .detail-row {
+      margin: 4px 0;
+    }
+    /* Header styling for clarity */
+    .header {
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+  </style>
+  <script>
+    let csvData = [];
+
+    // Function to process CSV data after reading
+    function processCSV(text) {
+      // Split CSV into rows then columns.
+      csvData = text.split('\n').map(row => row.split(','));
+      displayAssertOwnerNames();
+    }
+
+    // Triggered when a file is selected.
+    function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        processCSV(e.target.result);
+      };
+      reader.readAsText(file);
+    }
+
+    // Display unique Assert Owner Names from Column 6 (index 5)
+    function displayAssertOwnerNames() {
+      // Extract owners; filter out empty or undefined values.
+      const ownerSet = new Set(
+        csvData.slice(1)
+          .map(row => row[5] ? row[5].trim() : '')
+          .filter(owner => owner && owner.toLowerCase() !== 'undefined')
+      );
+      const ownersDiv = document.getElementById("assetOwners");
+      ownersDiv.innerHTML = "<h3>Select Assert Owner Name:</h3>";
+      ownerSet.forEach(owner => {
+        ownersDiv.innerHTML += `<button onclick="displayDetailsForOwner('${owner}')">${owner}</button> `;
+      });
+    }
+
+    // Display details for the selected Assert Owner.
+    function displayDetailsForOwner(owner) {
+      const filteredRows = csvData.slice(1).filter(row => row[5] && row[5].trim() === owner);
+      const detailsDiv = document.getElementById("details");
+      // Header as specified.
+      detailsDiv.innerHTML = `<div class="header">HostName | Ip_Address | OS_Name | VulnerabilityTitte | Vulnerability Solution | Vulnerability Asset | Owner Custom Tag</div>`;
+
+      filteredRows.forEach(row => {
+        if (row.length < 7) return; // Skip incomplete rows.
+        // The Vulnerability Title (Column D, index 3) is clickable.
+        detailsDiv.innerHTML += `<div class="detail-row">
+          ${row[0].trim()} | ${row[1].trim()} | ${row[2].trim()} |
+          <a href="#" onclick="displayByVulnTitle('${row[3].trim()}')">${row[3].trim()}</a> |
+          ${row[4].trim()} | ${row[5].trim()} | ${row[6].trim()}
+        </div>`;
+      });
+      // Clear any previous vulnerability title details.
+      document.getElementById("vulnDetails").innerHTML = "";
+    }
+
+    // Display details for the selected Vulnerability Title.
+    function displayByVulnTitle(title) {
+      const filtered = csvData.slice(1).filter(row => row[3] && row[3].trim() === title);
+      const vulnDetailsDiv = document.getElementById("vulnDetails");
+      vulnDetailsDiv.innerHTML = `<h3>Details for Vulnerability Title: ${title}</h3>
+      <div class="header">HostName | Ip_Address | OS_Name | Vulnerability Solution | Vulnerability Asset | Owner Custom Tag</div>`;
+      filtered.forEach(row => {
+        if (row.length < 7) return;
+        vulnDetailsDiv.innerHTML += `<div class="detail-row">
+          ${row[0].trim()} | ${row[1].trim()} | ${row[2].trim()} | ${row[4].trim()} | ${row[5].trim()} | ${row[6].trim()}
+        </div>`;
+      });
+    }
+  </script>
+</head>
+<body>
+  <h2>Vulnerability List</h2>
+
+  <!-- File upload form for CSV -->
+  <div>
+    <h3>Upload CSV File:</h3>
+    <input type="file" id="csvFileInput" accept=".csv" onchange="handleFileSelect(event)">
+  </div>
+
+  <div id="assetOwners"></div>
+  <div id="details"></div>
+  <div id="vulnDetails"></div>
+</body>
+</html>
